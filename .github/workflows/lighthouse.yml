@@ -9,7 +9,7 @@ on:
       url:
         description: "URL to run Lighthouse on"
         required: false
-        default: "http://localhost:8080"
+        default: "" # Firebase 배포 URL을 사용하므로 기본값을 비워둘 수 있습니다.
 
 permissions:
   issues: write
@@ -27,37 +27,47 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+      # Firebase 배포 단계 (기존 Vercel 단계 대체)
+      - name: Deploy to Firebase Hosting
+        id: firebase-deploy # 단계 ID 변경
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}" # GitHub 토큰 (필요시)
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_FRONT_5TH_CHAPTER4_2BASIC }}" # Firebase 서비스 계정 JSON (아래에서 설명)
+          # 또는 firebaseToken: '${{ secrets.FIREBASE_TOKEN }}' # Firebase CI 토큰 (아래에서 설명)
+          channelId: live # 프로덕션 채널에 배포 (또는 필요에 따라 preview 채널 사용 가능)
+          projectId: front-5th-chapter4-2basic # 여기에 Firebase 프로젝트 ID를 입력하세요.
 
-      - name: Deploy to Vercel
-        id: vercel-deploy
-        run: |
-          DEPLOYMENT_URL=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
-          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "🚀 Deployed to: $DEPLOYMENT_URL"
-
-      - name: Install dependencies
+      - name: Install dependencies for Lighthouse
         run: |
           npm install -g @lhci/cli@0.14.x
-          npm install -g http-server
-
-      - name: Start local server
-        run: |
-          http-server . -p 8080 &
-          sleep 5
-          echo "🌐 Local server started"
+          # http-server는 Firebase 배포 시에는 필요 없습니다.
 
       - name: Run Lighthouse CI
         id: lighthouse
         continue-on-error: true
         run: |
-          if [ -n "${{ steps.vercel-deploy.outputs.deployment-url }}" ]; then
-            URL="${{ steps.vercel-deploy.outputs.deployment-url }}"
-            echo "🔍 Running Lighthouse on Vercel deployment: $URL"
+          # Firebase 배포 URL을 사용하도록 수정
+          # action-hosting-deploy@v0는 기본적으로 배포된 URL을 출력하지 않으므로,
+          # Firebase 프로젝트의 기본 호스팅 URL을 직접 사용하거나,
+          # Firebase 프로젝트 ID를 기반으로 예측해야 합니다.
+          # 예: https://front-5th-chapter4-2basic.web.app
+          # 또는 inputs.url이 제공되면 그것을 사용합니다.
+
+          # firebase-deploy 단계에서 outputs을 통해 URL을 얻을 수 있다면 가장 좋습니다.
+          # 현재 FirebaseExtended/action-hosting-deploy@v0는 기본적으로 URL을 output으로 제공하지 않습니다.
+          # 가장 간단한 방법은 Firebase Hosting의 기본 URL 패턴을 사용하는 것입니다.
+          FIREBASE_HOSTING_URL="https://front-5th-chapter4-2basic.web.app" # ★★★ Firebase 프로젝트 ID로 교체 ★★★
+
+          if [ -n "${{ github.event.inputs.url }}" ]; then
+            URL="${{ github.event.inputs.url }}"
+            echo "🔍 Running Lighthouse on user provided URL: $URL"
+          elif [ -n "$FIREBASE_HOSTING_URL" ]; then
+            URL="$FIREBASE_HOSTING_URL"
+            echo "🔍 Running Lighthouse on Firebase Hosting URL: $URL"
           else
-            URL="${{ github.event.inputs.url || 'http://localhost:8080' }}"
-            echo "🔍 Running Lighthouse on: $URL"
+            echo "🚨 Deployment URL not found!"
+            exit 1
           fi
           lhci autorun --collect.url=$URL
 
@@ -141,12 +151,15 @@ jobs:
                 CLS: getMetricValue(report, 'cumulative-layout-shift')
               };
 
-              const deploymentUrl = "${{ steps.vercel-deploy.outputs.deployment-url }}";
-              const testedUrl = deploymentUrl || "${{ github.event.inputs.url || 'http://localhost:8080' }}";
+              // Firebase 배포 URL을 참조하도록 수정
+              const deploymentUrl = `https://front-5th-chapter4-2basic.web.app`; // ★★★ Firebase 프로젝트 ID로 교체 ★★★
+              // const deploymentUrl = steps['firebase-deploy'].outputs.deployment_url; // 만약 액션이 URL을 output으로 제공한다면 이와 같이 사용
+              const testedUrl = "${{ github.event.inputs.url }}" || deploymentUrl;
+
 
               const body = `## 🚨 웹사이트 성능 측정 결과
 
-              ${deploymentUrl ? `### 🚀 배포 정보\n**Vercel 배포 URL**: ${deploymentUrl}\n` : ''}
+              ${deploymentUrl ? `### 🚀 배포 정보\n**Firebase 배포 URL**: ${deploymentUrl}\n` : ''}
 
               ### 🎯 Lighthouse 점수
               | 카테고리 | 점수 | 상태 |
@@ -186,7 +199,7 @@ jobs:
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `📊 웹사이트 성능 측정 결과 - ${new Date().toLocaleString('ko-KR', { 
+                title: `📊 웹사이트 성능 측정 결과 (Firebase) - ${new Date().toLocaleString('ko-KR', { 
                   timeZone: 'Asia/Seoul',
                   year: 'numeric',
                   month: '2-digit',
@@ -196,35 +209,37 @@ jobs:
                   hour12: false
                 })}`,
                 body: body,
-                labels: ['lighthouse-audit', 'web-vitals']
+                labels: ['lighthouse-audit', 'web-vitals', 'firebase']
               });
               
             } catch (error) {
               console.error('❌ 에러 발생:', error.message);
               
-              const deploymentUrl = "${{ steps.vercel-deploy.outputs.deployment-url }}";
+              // Firebase 배포 URL을 참조하도록 수정
+              const deploymentUrl = `https://front-5th-chapter4-2basic.web.app`; // ★★★ Firebase 프로젝트 ID로 교체 ★★★
+              // const deploymentUrl = steps['firebase-deploy'].outputs.deployment_url; // 만약 액션이 URL을 output으로 제공한다면
               
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title: `❌ Lighthouse 실행 실패 - ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+                title: `❌ Lighthouse 실행 실패 (Firebase) - ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
                 body: `## ❌ Lighthouse 실행 실패
                 
-                ${deploymentUrl ? `### 🚀 배포 정보\n**Vercel 배포 URL**: ${deploymentUrl} (배포는 성공)\n` : ''}
+                ${deploymentUrl ? `### 🚀 배포 정보\n**Firebase 배포 URL**: ${deploymentUrl} (배포는 성공했을 수 있음)\n` : ''}
                 
                 **에러 메시지**: ${error.message}
                 
                 **가능한 원인**:
                 1. lighthouserc.js 파일이 없음
-                2. 대상 URL에 접근할 수 없음
+                2. 대상 URL에 접근할 수 없음 (Firebase 배포 확인 필요)
                 3. Lighthouse CI 실행 실패
                 
                 **해결 방법**:
                 1. lighthouserc.js 파일을 프로젝트 루트에 생성
-                2. 배포된 사이트가 정상적으로 작동하는지 확인
+                2. 배포된 Firebase 사이트가 정상적으로 작동하는지 확인
                 3. GitHub Actions 로그 확인
                 
                 > 📅 실행 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
-                labels: ['lighthouse-audit', 'error']
+                labels: ['lighthouse-audit', 'error', 'firebase']
               });
             }
