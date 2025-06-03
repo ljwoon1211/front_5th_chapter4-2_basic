@@ -27,7 +27,6 @@ jobs:
         with:
           node-version: 20
 
-      # Vercel 배포 추가
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
@@ -44,13 +43,15 @@ jobs:
           npm install -g http-server
 
       - name: Start local server
-        run: http-server . -p 8080 &
+        run: |
+          http-server . -p 8080 &
+          sleep 5
+          echo "🌐 Local server started"
 
       - name: Run Lighthouse CI
         id: lighthouse
         continue-on-error: true
         run: |
-          # Vercel 배포 URL이 있으면 사용, 없으면 기존 로직 사용
           if [ -n "${{ steps.vercel-deploy.outputs.deployment-url }}" ]; then
             URL="${{ steps.vercel-deploy.outputs.deployment-url }}"
             echo "🔍 Running Lighthouse on Vercel deployment: $URL"
@@ -68,136 +69,162 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+
             try {
+              const lhciDir = '.lighthouseci';
+              
+              if (!fs.existsSync(lhciDir)) {
+                throw new Error('Lighthouse CI가 실행되지 않았습니다. .lighthouseci 디렉토리가 생성되지 않았습니다.');
+              }
+              
+              const jsonReports = fs.readdirSync(lhciDir).filter(f => f.endsWith('.json'));
+              
+              if (jsonReports.length === 0) {
+                const dirContents = fs.readdirSync(lhciDir);
+                throw new Error(`Lighthouse 보고서가 생성되지 않았습니다. 디렉토리 내용: ${dirContents.join(', ')}`);
+              }
+              
+              const latestReport = jsonReports.sort().reverse()[0];
+              const reportPath = path.join(lhciDir, latestReport);
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
 
-            const lhciDir = '.lighthouseci';
-            // 디렉토리 존재 확인
-            if (!fs.existsSync(lhciDir)) {
-              throw new Error('Lighthouse CI가 실행되지 않았습니다. .lighthouseci 디렉토리가 생성되지 않았습니다.');
-            }
-            
-            const jsonReports = fs.readdirSync(lhciDir).filter(f => f.endsWith('.json'));
-            
-            if (jsonReports.length === 0) {
-              const dirContents = fs.readdirSync(lhciDir);
-              throw new Error(`Lighthouse 보고서가 생성되지 않았습니다. 디렉토리 내용: ${dirContents.join(', ')}`);
-            }            
-            const latestReport = jsonReports.sort().reverse()[0];
-            const reportPath = path.join(lhciDir, latestReport);
-            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-
-            const formatScore = (value = 0) => {
-              return Math.round(value * 100);
-            };
-
-            const getEmoji = (value, metric) => {
-              const thresholds = {
-                LCP: { good: 2500, needsImprovement: 4000 },
-                INP: { good: 200, needsImprovement: 500 },
-                CLS: { good: 0.1, needsImprovement: 0.25 },
+              const formatScore = (value = 0) => {
+                return Math.round(value * 100);
               };
+
+              const getEmoji = (value, metric) => {
+                const thresholds = {
+                  LCP: { good: 2500, needsImprovement: 4000 },
+                  INP: { good: 200, needsImprovement: 500 },
+                  CLS: { good: 0.1, needsImprovement: 0.25 },
+                };
+                
+                if (!thresholds[metric]) return value >= 90 ? '🟢' : value >= 50 ? '🟠' : '🔴';
+                
+                const t = thresholds[metric];
+                return value <= t.good ? '🟢' : value <= t.needsImprovement ? '🟠' : '🔴';
+              };
+
+              const formatMetric = (value, metric) => {
+                if (!value) return 'N/A';
+                if (metric === 'CLS') return value.toFixed(3);
+                return `${(value / 1000).toFixed(2)}s`;
+              };
+
+              const getLighthouseResult = (report, category) => {
+                try {
+                  return report.categories?.[category]?.score ?? 0;
+                } catch (e) {
+                  return 0;
+                }
+              };
+
+              const getMetricValue = (report, metric) => {
+                try {
+                  return report.audits?.[metric]?.numericValue ?? 0;
+                } catch (e) {
+                  return 0;
+                }
+              };
+
+              const lighthouseScores = {
+                performance: getLighthouseResult(report, 'performance'),
+                accessibility: getLighthouseResult(report, 'accessibility'),
+                'best-practices': getLighthouseResult(report, 'best-practices'),
+                seo: getLighthouseResult(report, 'seo'),
+                pwa: getLighthouseResult(report, 'pwa')
+              };
+
+              const webVitals = {
+                LCP: getMetricValue(report, 'largest-contentful-paint'),
+                INP: getMetricValue(report, 'experimental-interaction-to-next-paint'),
+                CLS: getMetricValue(report, 'cumulative-layout-shift')
+              };
+
+              const deploymentUrl = "${{ steps.vercel-deploy.outputs.deployment-url }}";
+              const testedUrl = deploymentUrl || "${{ github.event.inputs.url || 'http://localhost:8080' }}";
+
+              const body = `## 🚨 웹사이트 성능 측정 결과
+
+              ${deploymentUrl ? `### 🚀 배포 정보\n**Vercel 배포 URL**: ${deploymentUrl}\n` : ''}
+
+              ### 🎯 Lighthouse 점수
+              | 카테고리 | 점수 | 상태 |
+              |----------|------|------|
+              | Performance | ${formatScore(lighthouseScores.performance)}% | ${getEmoji(formatScore(lighthouseScores.performance))} |
+              | Accessibility | ${formatScore(lighthouseScores.accessibility)}% | ${getEmoji(formatScore(lighthouseScores.accessibility))} |
+              | Best Practices | ${formatScore(lighthouseScores['best-practices'])}% | ${getEmoji(formatScore(lighthouseScores['best-practices']))} |
+              | SEO | ${formatScore(lighthouseScores.seo)}% | ${getEmoji(formatScore(lighthouseScores.seo))} |
+              | PWA | ${formatScore(lighthouseScores.pwa)}% | ${getEmoji(formatScore(lighthouseScores.pwa))} |
+
+              ### 📊 Core Web Vitals (2024)
+              | 메트릭 | 설명 | 측정값 | 상태 |
+              |--------|------|--------|------|
+              | LCP | Largest Contentful Paint | ${formatMetric(webVitals.LCP, 'LCP')} | ${getEmoji(webVitals.LCP, 'LCP')} |
+              | INP | Interaction to Next Paint | ${formatMetric(webVitals.INP, 'INP')} | ${getEmoji(webVitals.INP, 'INP')} |
+              | CLS | Cumulative Layout Shift | ${formatMetric(webVitals.CLS, 'CLS')} | ${getEmoji(webVitals.CLS, 'CLS')} |
+
+              ### 📝 Core Web Vitals 기준값
+              - **LCP (Largest Contentful Paint)**: 가장 큰 콘텐츠가 화면에 그려지는 시점 
+                - 🟢 Good: < 2.5s
+                - 🟠 Needs Improvement: < 4.0s
+                - 🔴 Poor: ≥ 4.0s
+
+              - **INP (Interaction to Next Paint)**: 사용자 상호작용에 대한 전반적인 응답성
+                - 🟢 Good: < 200ms
+                - 🟠 Needs Improvement: < 500ms
+                - 🔴 Poor: ≥ 500ms
+
+              - **CLS (Cumulative Layout Shift)**: 페이지 로드 중 예기치 않은 레이아웃 변경의 정도
+                - 🟢 Good: < 0.1
+                - 🟠 Needs Improvement: < 0.25
+                - 🔴 Poor: ≥ 0.25
+
+              > 📅 측정 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+              > 🌍 측정 URL: ${testedUrl}`;
+
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `📊 웹사이트 성능 측정 결과 - ${new Date().toLocaleString('ko-KR', { 
+                  timeZone: 'Asia/Seoul',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                })}`,
+                body: body,
+                labels: ['lighthouse-audit', 'web-vitals']
+              });
               
-              if (!thresholds[metric]) return value >= 90 ? '🟢' : value >= 50 ? '🟠' : '🔴';
+            } catch (error) {
+              console.error('❌ 에러 발생:', error.message);
               
-              const t = thresholds[metric];
-              return value <= t.good ? '🟢' : value <= t.needsImprovement ? '🟠' : '🔴';
-            };
-
-            const formatMetric = (value, metric) => {
-              if (!value) return 'N/A';
-              if (metric === 'CLS') return value.toFixed(3);
-              return `${(value / 1000).toFixed(2)}s`;
-            };
-
-            const getLighthouseResult = (report, category) => {
-              try {
-                return report.categories?.[category]?.score ?? 0;
-              } catch (e) {
-                return 0;
-              }
-            };
-
-            const getMetricValue = (report, metric) => {
-              try {
-                return report.audits?.[metric]?.numericValue ?? 0;
-              } catch (e) {
-                return 0;
-              }
-            };
-
-            const lighthouseScores = {
-              performance: getLighthouseResult(report, 'performance'),
-              accessibility: getLighthouseResult(report, 'accessibility'),
-              'best-practices': getLighthouseResult(report, 'best-practices'),
-              seo: getLighthouseResult(report, 'seo'),
-              pwa: getLighthouseResult(report, 'pwa')
-            };
-
-            const webVitals = {
-              LCP: getMetricValue(report, 'largest-contentful-paint'),
-              INP: getMetricValue(report, 'experimental-interaction-to-next-paint'),
-              CLS: getMetricValue(report, 'cumulative-layout-shift')
-            };
-
-            const reportUrl = `.lighthouseci/${latestReport.replace('.json', '.html')}`;
-
-            // 배포 URL 정보 추가
-            const deploymentUrl = "${{ steps.vercel-deploy.outputs.deployment-url }}";
-            const testedUrl = deploymentUrl || "${{ github.event.inputs.url || 'http://localhost:8080' }}";
-
-            const body = `## 🚨 웹사이트 성능 측정 결과
-
-            ${deploymentUrl ? `### 🚀 배포 정보\n**Vercel 배포 URL**: ${deploymentUrl}\n` : ''}
-
-            ### 🎯 Lighthouse 점수
-            | 카테고리 | 점수 | 상태 |
-            |----------|------|------|
-            | Performance | ${formatScore(lighthouseScores.performance)}% | ${getEmoji(formatScore(lighthouseScores.performance))} |
-            | Accessibility | ${formatScore(lighthouseScores.accessibility)}% | ${getEmoji(formatScore(lighthouseScores.accessibility))} |
-            | Best Practices | ${formatScore(lighthouseScores['best-practices'])}% | ${getEmoji(formatScore(lighthouseScores['best-practices']))} |
-            | SEO | ${formatScore(lighthouseScores.seo)}% | ${getEmoji(formatScore(lighthouseScores.seo))} |
-            | PWA | ${formatScore(lighthouseScores.pwa)}% | ${getEmoji(formatScore(lighthouseScores.pwa))} |
-
-            ### 📊 Core Web Vitals (2024)
-            | 메트릭 | 설명 | 측정값 | 상태 |
-            |--------|------|--------|------|
-            | LCP | Largest Contentful Paint | ${formatMetric(webVitals.LCP, 'LCP')} | ${getEmoji(webVitals.LCP, 'LCP')} |
-            | INP | Interaction to Next Paint | ${formatMetric(webVitals.INP, 'INP')} | ${getEmoji(webVitals.INP, 'INP')} |
-            | CLS | Cumulative Layout Shift | ${formatMetric(webVitals.CLS, 'CLS')} | ${getEmoji(webVitals.CLS, 'CLS')} |
-
-            ### 📝 Core Web Vitals 기준값
-            - **LCP (Largest Contentful Paint)**: 가장 큰 콘텐츠가 화면에 그려지는 시점 
-              - 🟢 Good: < 2.5s
-              - 🟠 Needs Improvement: < 4.0s
-              - 🔴 Poor: ≥ 4.0s
-
-            - **INP (Interaction to Next Paint)**: 사용자 상호작용에 대한 전반적인 응답성
-              - 🟢 Good: < 200ms
-              - 🟠 Needs Improvement: < 500ms
-              - 🔴 Poor: ≥ 500ms
-
-            - **CLS (Cumulative Layout Shift)**: 페이지 로드 중 예기치 않은 레이아웃 변경의 정도
-              - 🟢 Good: < 0.1
-              - 🟠 Needs Improvement: < 0.25
-              - 🔴 Poor: ≥ 0.25
-
-            > 📅 측정 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`;
-
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `📊 웹사이트 성능 측정 결과 - ${new Date().toLocaleString('ko-KR', { 
-                timeZone: 'Asia/Seoul',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              })}`,
-              body: body,
-              labels: ['lighthouse-audit', 'web-vitals']
-            });
-          } catch (error) {              
-            console.error('❌ 에러 발생:', error.message);
-          }
+              const deploymentUrl = "${{ steps.vercel-deploy.outputs.deployment-url }}";
+              
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `❌ Lighthouse 실행 실패 - ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+                body: `## ❌ Lighthouse 실행 실패
+                
+                ${deploymentUrl ? `### 🚀 배포 정보\n**Vercel 배포 URL**: ${deploymentUrl} (배포는 성공)\n` : ''}
+                
+                **에러 메시지**: ${error.message}
+                
+                **가능한 원인**:
+                1. lighthouserc.js 파일이 없음
+                2. 대상 URL에 접근할 수 없음
+                3. Lighthouse CI 실행 실패
+                
+                **해결 방법**:
+                1. lighthouserc.js 파일을 프로젝트 루트에 생성
+                2. 배포된 사이트가 정상적으로 작동하는지 확인
+                3. GitHub Actions 로그 확인
+                
+                > 📅 실행 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+                labels: ['lighthouse-audit', 'error']
+              });
+            }
