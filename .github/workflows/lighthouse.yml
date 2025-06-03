@@ -27,16 +27,21 @@ jobs:
         with:
           node-version: 20
 
-      # Firebase 배포 단계 (기존 Vercel 단계 대체)
+      # Firebase 배포 단계
       - name: Deploy to Firebase Hosting
         id: firebase-deploy # 단계 ID 변경
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}" # GitHub 토큰 (필요시)
+          repoToken: "${{ github.token }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_FRONT_5TH_CHAPTER4_2BASIC }}" # Firebase 서비스 계정 JSON (아래에서 설명)
           # 또는 firebaseToken: '${{ secrets.FIREBASE_TOKEN }}' # Firebase CI 토큰 (아래에서 설명)
           channelId: live # 프로덕션 채널에 배포 (또는 필요에 따라 preview 채널 사용 가능)
           projectId: front-5th-chapter4-2basic # 여기에 Firebase 프로젝트 ID를 입력하세요.
+
+      # --- 추가된 지연 단계 ---
+      - name: Wait for Firebase deployment to stabilize
+        run: sleep 120 # 120초 (2분) 대기. 필요에 따라 이 시간을 조절하세요.
+      # --- 지연 단계 끝 ---
 
       - name: Install dependencies for Lighthouse
         run: |
