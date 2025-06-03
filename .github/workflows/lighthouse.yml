@@ -68,12 +68,26 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+            try {
 
-            const lhciDir = '.lighthouseci';
-            const jsonReports = fs.readdirSync(lhciDir).filter(f => f.endsWith('.json'));
-            const latestReport = jsonReports.sort().reverse()[0];
-            const reportPath = path.join(lhciDir, latestReport);
-            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              const lhciDir = '.lighthouseci';
+              
+              // 디렉토리 존재 확인
+              if (!fs.existsSync(lhciDir)) {
+                throw new Error('Lighthouse CI가 실행되지 않았습니다. .lighthouseci 디렉토리가 생성되지 않았습니다.');
+              }
+              
+              const jsonReports = fs.readdirSync(lhciDir).filter(f => f.endsWith('.json'));
+              
+              if (jsonReports.length === 0) {
+                const dirContents = fs.readdirSync(lhciDir);
+                throw new Error(`Lighthouse 보고서가 생성되지 않았습니다. 디렉토리 내용: ${dirContents.join(', ')}`);
+              }
+              
+              const latestReport = jsonReports.sort().reverse()[0];
+              const reportPath = path.join(lhciDir, latestReport);
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+
 
             const formatScore = (value = 0) => {
               return Math.round(value * 100);
@@ -187,3 +201,6 @@ jobs:
               body: body,
               labels: ['lighthouse-audit', 'web-vitals']
             });
+ } catch (error) {
+              console.log(error)
+            }
