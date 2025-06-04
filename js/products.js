@@ -4,27 +4,86 @@ const lazyImageObserver = new IntersectionObserver((entries, observer) => {
     if (entry.isIntersecting) {
       const img = entry.target;
       img.src = img.dataset.src; // data-src에 저장된 실제 이미지 URL을 src로 옮김
-      img.classList.remove('lazy-image'); // 로드 후 클래스 제거 (선택적)
-      // img.removeAttribute('data-src'); // data-src 속성 제거 (선택적)
+      img.classList.remove('lazy-image'); // 로드 후 클래스 제거 
+      // img.removeAttribute('data-src'); // data-src 속성 제거 
       observer.unobserve(img); // 이미지가 로드되면 더 이상 관찰하지 않음
     }
   });
 });
 
+const productsContainer = document.querySelector('#all-products .container');
+
+function showLoadingIndicator() {
+  if (productsContainer) {
+    productsContainer.innerHTML = '<p class="loading-message">로딩 중...</p>';
+  }
+}
+
+function showErrorIndicator(message) {
+  if (productsContainer) {
+    productsContainer.innerHTML = `<p class="error-message">상품을 불러오는데 실패했습니다. (오류: ${message})</p>`;
+  }
+}
+
+
 async function loadProducts() {
-  const response = await fetch("https://fakestoreapi.com/products");
-  const products = await response.json();
-  displayProducts(products);
+  const CACHE_KEY = 'products_cache';
+  const CACHE_DURATION_MS = 5 * 60 * 1000; // 캐시 유효 기간: 5분
+
+  const cachedItem = localStorage.getItem(CACHE_KEY);
+  if (cachedItem) {
+    const { products, timestamp } = JSON.parse(cachedItem);
+    if (Date.now() - timestamp < CACHE_DURATION_MS) {
+      displayProducts(products);
+      return; // 캐시된 데이터 사용하고 함수 종료
+    } else {
+      localStorage.removeItem(CACHE_KEY); // 유효 기간 지난 캐시 삭제
+    }
+  }
+
+  showLoadingIndicator();
+
+  // 2. 요청 타임아웃 설정
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+    console.error('API 요청 시간 초과');
+  }, 5000); // 5초 타임아웃
+
+  try {
+    const response = await fetch("https://fakestoreapi.com/products", { //
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const products = await response.json();
+
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      products: products,
+      timestamp: Date.now()
+    }));
+
+    displayProducts(products);
+
+  } catch (error) {
+    const errorMessage = error.name === 'AbortError' ? '요청 시간 초과' : error.message;
+    console.error('상품 로딩 실패:', errorMessage);
+    showErrorIndicator(errorMessage);
+  }
 }
 
 function displayProducts(products) {
-
+  if (!productsContainer) return;
   // Find the container where products will be displayed
-  const container = document.querySelector('#all-products .container');
-
+  productsContainer.innerHTML = '';
 
   // Iterate over each product and create the HTML structure safely
-  products.forEach(product => {
+  products.forEach((product, index) => {
     // Create the main product div
     const productElement = document.createElement('div');
     productElement.classList.add('product');
@@ -83,14 +142,14 @@ function displayProducts(products) {
     productElement.appendChild(infoDiv);
 
     // Append the new product element to the container
-    container.appendChild(productElement);
+    productsContainer.appendChild(productElement);
   });
 }
 
-loadProducts();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadProducts);
+} else {
+  loadProducts(); // 이미 로드된 경우 바로 실행
+}
 
-// Simulate heavy operation. It could be a complex price calculation.
-// for (let i = 0; i < 10000000; i++) {
-//   const temp = Math.sqrt(i) * Math.sqrt(i);
-// }
 
