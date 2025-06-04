@@ -133,9 +133,11 @@ section.hero img {
 }
 
 section.hero img {
-  width: 100%;
-  height: auto;
   filter: brightness(50%);
+}
+
+section.hero img.desktop {
+  display: initial;
 }
 
 .hero-content {
@@ -551,6 +553,14 @@ img[src] {
     display: inline-block;
   }
 
+  section.hero img.desktop {
+    display: none;
+  }
+
+  section.hero img.tablet {
+    display: initial;
+  }
+
   .hero-content h1 {
     font-size: 40px;
     letter-spacing: 1px;
@@ -681,6 +691,14 @@ img[src] {
   header .logo .blue-dot {
     width: 7px;
     height: 7px;
+  }
+
+  section.hero img.tablet {
+    display: none;
+  }
+
+  section.hero img.mobile {
+    display: initial;
   }
 
   .hero-content {
