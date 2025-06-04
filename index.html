@@ -8,26 +8,27 @@
   <meta name="description" content="다양한 최신 VR 헤드셋을 만나보세요. 최고의 가상현실 경험을 위한 테크샵입니다.">
 
   <title>Home - Tech Shop</title>
-
-  <!-- DNS 프리페치 -->
-  <link rel="dns-prefetch" href="//fonts.gstatic.com">
-  <link rel="dns-prefetch" href="//fakestoreapi.com">
-  <link rel="dns-prefetch" href="//www.googletagmanager.com">
-
-
-  <!-- 중요 리소스 프리로드 -->
-  <link rel="preload" href="/images/Hero_Desktop.webp" as="image" fetchpriority="high">
-  <link rel="preload" href="/js/main.js" as="script">
-
-  <!-- 폰트 로딩 -->
+  <link rel="preload" href="https://fonts.gstatic.com/s/heebo/v20/NGS6v5_NC0k9P9ldb4d1.woff2" as="font"
+    type="font/woff2" crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css?family=Heebo:300,400,600,700&display=swap" rel="stylesheet">
 
+  <style>
+    /* Critical CSS 내용 */
+    body {
+      margin: 0;
+      font-family: "Heebo";
+      padding-top: 80px;
+    }
 
+    /* 예시 */
+    header {
+      background-color: #fff;
+      /* ... */
+    }
+
+    /* ... 히어로 섹션 및 상단 메뉴에 필요한 최소 스타일 ... */
+  </style>
   <link rel="stylesheet" href="/css/styles.css" media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet" href="/css/styles.css">
-  </noscript>
-
   <!-- <link rel="stylesheet" type="text/css" href="/css/slick.css"/> -->
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
@@ -46,7 +47,7 @@
 <body>
   <!-- Cookie Consent by FreePrivacyPolicy.com https://www.FreePrivacyPolicy.com -->
   <script type="text/javascript" src="//www.freeprivacypolicy.com/public/cookie-consent/4.1.0/cookie-consent.js"
-    charset="UTF-8" defer></script>
+    charset="UTF-8"></script>
   <script type="text/javascript" charset="UTF-8">
     document.addEventListener('DOMContentLoaded', function () { // DOMContentLoaded 이벤트 리스너 추가
       cookieconsent.run({
@@ -95,7 +96,7 @@
       <source media="(max-width: 576px)" srcset="images/Hero_Mobile.webp">
       <source media="(max-width: 960px)" srcset="images/Hero_Tablet.webp">
       <img class="desktop" src="images/Hero_Desktop.webp" alt="Discover our line of VR Headsets" fetchpriority="high"
-        width="1440" height="800">
+        width="1440">
     </picture>
 
     <div class="hero-content">
