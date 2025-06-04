@@ -1,3 +1,16 @@
+
+const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      img.src = img.dataset.src; // data-src에 저장된 실제 이미지 URL을 src로 옮김
+      img.classList.remove('lazy-image'); // 로드 후 클래스 제거 (선택적)
+      // img.removeAttribute('data-src'); // data-src 속성 제거 (선택적)
+      observer.unobserve(img); // 이미지가 로드되면 더 이상 관찰하지 않음
+    }
+  });
+});
+
 async function loadProducts() {
   const response = await fetch("https://fakestoreapi.com/products");
   const products = await response.json();
@@ -20,9 +33,22 @@ function displayProducts(products) {
     const pictureDiv = document.createElement('div');
     pictureDiv.classList.add('product-picture');
     const img = document.createElement('img');
-    img.src = product.image;
+
+    // --- 지연 로딩을 위한 수정 ---
+    img.dataset.src = product.image;
+    img.classList.add('lazy-image');
+
     img.alt = `product: ${product.title}`;
     img.width = 250;
+
+    // 이미지 3개는 즉시 로드
+    if (index < 3) {
+      img.src = product.image;
+      img.classList.remove('lazy-image');
+    } else {
+      lazyImageObserver.observe(img);
+    }
+
     pictureDiv.appendChild(img);
 
     // Create the product info div
@@ -59,9 +85,6 @@ function displayProducts(products) {
     // Append the new product element to the container
     container.appendChild(productElement);
   });
-
-
-
 }
 
 loadProducts();
