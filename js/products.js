@@ -153,7 +153,52 @@ function displayProducts(products) {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadProducts);
 } else {
-  loadProducts(); // 이미 로드된 경우 바로 실행
+  loadProducts();
 }
 
 
+window.onload = () => {
+  let status = 'idle';
+  let productSection = document.querySelector('#all-products');
+
+  window.onscroll = () => {
+    let position = productSection.getBoundingClientRect().top - (window.scrollY + window.innerHeight);
+    if (status === 'idle' && position <= 0) {
+      status = 'loading';
+      loadProducts();
+
+      // 무거운 연산을 비동기적으로 처리
+      heavyCalculationAsync().then(() => {
+        status = 'idle';
+        console.log('Heavy calculation completed');
+      });
+    }
+  }
+}
+
+// 작업을 청크 단위로 분할하여 처리
+function heavyCalculationAsync() {
+  return new Promise((resolve) => {
+    let i = 0;
+    const chunkSize = 100000; // 한 번에 처리할 연산 수
+    const totalOperations = 10000000;
+
+    function processChunk() {
+      const end = Math.min(i + chunkSize, totalOperations);
+
+      // 청크 단위로 연산 수행
+      for (; i < end; i++) {
+        const temp = Math.sqrt(i) * Math.sqrt(i);
+      }
+
+      if (i < totalOperations) {
+        // 다음 청크를 다음 이벤트 루프에서 처리
+        setTimeout(processChunk, 0);
+      } else {
+        resolve();
+      }
+    }
+
+    processChunk();
+  });
+}

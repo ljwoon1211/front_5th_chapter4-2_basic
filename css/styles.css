@@ -1,6 +1,38 @@
+@font-face {
+  font-family: "Heebo";
+  src: url("fonts/Heebo-Regular.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Heebo";
+  src: url("fonts/Heebo-Light.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 300;
+  font-style: light;
+}
+
+@font-face {
+  font-family: "Heebo";
+  src: url("fonts/Heebo-Medium.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 600;
+  font-style: medium;
+}
+
+@font-face {
+  font-family: "Heebo";
+  src: url("fonts/Heebo-Bold.ttf") format("truetype");
+  font-display: swap;
+  font-weight: 700;
+  font-style: bold;
+}
+
 body {
   margin: 0;
-  font-family: "Heebo";
+  font-family: "Heebo", sans-serif;
   padding-top: 80px;
 }
 
@@ -101,11 +133,9 @@ section.hero img {
 }
 
 section.hero img {
+  width: 100%;
+  height: auto;
   filter: brightness(50%);
-}
-
-section.hero img.desktop {
-  display: initial;
 }
 
 .hero-content {
@@ -180,7 +210,6 @@ section.country-bar {
   opacity: 0;
   visibility: hidden;
 }
-
 /* section.country-bar.hidden {
   display: none;
 } */
@@ -522,14 +551,6 @@ img[src] {
     display: inline-block;
   }
 
-  section.hero img.desktop {
-    display: none;
-  }
-
-  section.hero img.tablet {
-    display: initial;
-  }
-
   .hero-content h1 {
     font-size: 40px;
     letter-spacing: 1px;
@@ -660,14 +681,6 @@ img[src] {
   header .logo .blue-dot {
     width: 7px;
     height: 7px;
-  }
-
-  section.hero img.tablet {
-    display: none;
-  }
-
-  section.hero img.mobile {
-    display: initial;
   }
 
   .hero-content {

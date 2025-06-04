@@ -12,3 +12,4 @@ function showTopBarWithAnimation() {
 
 // DOM이 완전히 로드된 후 함수를 실행합니다.
 document.addEventListener('DOMContentLoaded', showTopBarWithAnimation);
+
