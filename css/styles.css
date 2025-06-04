@@ -449,6 +449,26 @@ footer .copyright-text {
   line-height: 22px;
 }
 
+.lazy-image {
+  /* 로딩 전까지 보일 배경색이나 placeholder 이미지 */
+  background-color: #f0f0f0;
+  min-height: 100px; /* 최소 높이를 지정하여 레이아웃 깨짐 방지 */
+}
+img[src] {
+  opacity: 1;
+}
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.2em;
+  color: #555;
+}
+
+.error-message {
+  color: red;
+}
+
 /* **********************************
 ******  CSS MEDIA QUERIES ********* 
 ************************************/
@@ -731,23 +751,6 @@ footer .copyright-text {
 
   footer .bottom-nav ul:last-of-type {
     margin-bottom: 0;
-  }
-
-  .lazy-image {
-    /* 로딩 전까지 보일 배경색이나 placeholder 이미지 */
-    background-color: #f0f0f0;
-    min-height: 100px; /* 최소 높이를 지정하여 레이아웃 깨짐 방지 */
-  }
-  .loading-message,
-  .error-message {
-    text-align: center;
-    padding: 20px;
-    font-size: 1.2em;
-    color: #555;
-  }
-
-  .error-message {
-    color: red;
   }
 }
 /* End of Design for Mobile Phones */

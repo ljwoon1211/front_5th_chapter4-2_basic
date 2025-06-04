@@ -79,8 +79,10 @@ async function loadProducts() {
 
 function displayProducts(products) {
   if (!productsContainer) return;
-  // Find the container where products will be displayed
   productsContainer.innerHTML = '';
+
+  const fragment = document.createDocumentFragment();
+
 
   // Iterate over each product and create the HTML structure safely
   products.forEach((product, index) => {
@@ -142,8 +144,10 @@ function displayProducts(products) {
     productElement.appendChild(infoDiv);
 
     // Append the new product element to the container
-    productsContainer.appendChild(productElement);
+    fragment.appendChild(productElement);
   });
+  productsContainer.appendChild(fragment);
+
 }
 
 if (document.readyState === 'loading') {
