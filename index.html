@@ -6,8 +6,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home - Tech Shop</title>
+  <link rel="preload" href="https://fonts.gstatic.com/s/heebo/vVERSION/fontWeight.woff2" as="font" type="font/woff2"
+    crossorigin="anonymous">
   <link href="https://fonts.googleapis.com/css?family=Heebo:300,400,600,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+
+  <style>
+    /* Critical CSS 내용 */
+    body {
+      margin: 0;
+      font-family: "Heebo";
+      padding-top: 80px;
+    }
+
+    /* 예시 */
+    header {
+      background-color: #fff;
+      /* ... */
+    }
+
+    /* ... 히어로 섹션 및 상단 메뉴에 필요한 최소 스타일 ... */
+  </style>
+  <link rel="stylesheet" href="/css/styles.css" media="print" onload="this.media='all'">
   <!-- <link rel="stylesheet" type="text/css" href="/css/slick.css"/> -->
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
@@ -20,13 +39,6 @@
     })(window, document, 'script', 'dataLayer', 'GTM-PKK35GL5');
   </script>
   <!-- End Google Tag Manager -->
-
-  <!-- Cookie Consent by FreePrivacyPolicy.com https://www.FreePrivacyPolicy.com
-  <script type="text/javascript" src="//www.freeprivacypolicy.com/public/cookie-consent/4.1.0/cookie-consent.js"
-    charset="UTF-8"></script>
-  <script type="text/javascript" charset="UTF-8">
-    cookieconsent.run({ "notice_banner_type": "simple", "consent_type": "express", "palette": "light", "language": "en", "page_load_consent_levels": ["strictly-necessary"], "notice_banner_reject_button_hide": false, "preferences_center_close_button_hide": false, "page_refresh_confirmation_buttons": false, "website_name": "Performance Course" });
-  </script> -->
 
 </head>
 
@@ -78,10 +90,11 @@
 
   <section class="hero">
 
-    <img class="desktop" src="images/Hero_Desktop.webp">
-    <img class="mobile" src="images/Hero_Mobile.webp">
-    <img class="tablet" src="images/Hero_Tablet.webp">
-
+    <picture>
+      <source media="(max-width: 576px)" srcset="images/Hero_Mobile.webp">
+      <source media="(max-width: 960px)" srcset="images/Hero_Tablet.webp">
+      <img class="desktop" src="images/Hero_Desktop.webp" alt="Discover our line of VR Headsets" fetchpriority="high">
+    </picture>
 
     <div class="hero-content">
       <div class="container">
@@ -220,8 +233,8 @@
   <a href="#" id="open_preferences_center">Update cookies preferences</a>
 
 
-  <script type="text/javascript" src="/js/main.js"></script>
-  <script type="text/javascript" src="/js/products.js"></script>
+  <script type="text/javascript" src="/js/main.js" defer></script>
+  <script type="text/javascript" src="/js/products.js" defer></script>
 
 </body>
 
