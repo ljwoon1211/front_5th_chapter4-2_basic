@@ -5,7 +5,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Tech Shop에서 다양한 VR 헤드셋과 액세서리를 만나보세요. Apple, Playstation, Oculus VR 등의 최신 제품과 할인 정보를 확인하세요.">
   <title>Home - Tech Shop</title>
+  <link rel="canonical" href="https://front-5th-chapter4-2basic.web.app/">
+
   <!-- <link href="https://fonts.googleapis.com/css?family=Heebo:300,400,600,700&display=swap" rel="stylesheet"> -->
   <link rel="stylesheet" href="/css/styles.css">
   <!-- <link rel="stylesheet" type="text/css" href="/css/slick.css"/> -->
@@ -54,7 +58,7 @@
           <li><a href="about.html">About us</a></li>
           <li><a href="index.html#best-sellers-section">Best Sellers</a></li>
           <li><a href="index.html#newsletter-section">Newsletter</a></li>
-          <li class="menu-icon"><img src="images/menu_icon.webp"></li>
+          <li class="menu-icon"><img src="images/menu_icon.webp" alt="메뉴 열기"></li>
         </ul>
       </nav>
     </div>
@@ -66,7 +70,7 @@
       <source width="576" height="576" media="(max-width: 575px)" srcset="images/Hero_Mobile.webp">
       <source width="960" height="770" media="(min-width: 576px) and (max-width: 960px)"
         srcset="images/Hero_Tablet.webp">
-      <img width="1920" height="893" src="images/Hero_Desktop.webp">
+      <img width="1920" height="893" src="images/Hero_Desktop.webp" alt="다양한 VR 헤드셋을 체험하는 모습">
     </picture>
 
 
@@ -152,7 +156,7 @@
     <h3>Newsletter Signup</h3>
     <p>Subscribe now and don't miss a single deal!</p>
     <form>
-      <input type="email" name="email" placeholder="Your email...">
+      <input type="email" name="email" placeholder="Your email..." aria-label="뉴스레터 구독 이메일 주소">
       <button type="submit">Subscribe</button>
     </form>
   </section>
@@ -207,8 +211,8 @@
   <a href="#" id="open_preferences_center">Update cookies preferences</a>
 
 
-  <script type="text/javascript" src="/js/main.js"></script>
-  <script type="text/javascript" src="/js/products.js"></script>
+  <script type="text/javascript" src="/js/main.js" defer></script>
+  <script type="text/javascript" src="/js/products.js" defer></script>
 
 </body>
 
